@@ -2,6 +2,7 @@ package com.cowbell.cordova.geofence;
 
 import com.google.android.gms.location.Geofence;
 import com.google.gson.annotations.Expose;
+import java.util.*;
 
 public class GeoNotification {
     @Expose public String id;
@@ -9,6 +10,9 @@ public class GeoNotification {
     @Expose public double longitude;
     @Expose public int radius;
     @Expose public int transitionType;
+    
+    @Expose public String url;
+    @Expose public Map<String,String> headers;
 
     @Expose public Notification notification;
 
