@@ -4,12 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.HttpResponse;
 import android.os.AsyncTask;
+import javax.net.ssl.*;
+import java.net.*;
 import java.util.*;
+import java.io.*;
 
 public class TransitionReceiver extends BroadcastReceiver {
 
@@ -43,26 +42,38 @@ public class TransitionReceiver extends BroadcastReceiver {
                 for (int i=0; i < geoNotifications.length; i++){
                     GeoNotification geoNotification = geoNotifications[i];
 
-                    DefaultHttpClient httpClient = new DefaultHttpClient();
-                    HttpPost request = new HttpPost(geoNotification.url);
-
-                    StringEntity se = new StringEntity(geoNotification.toJson());
-                    request.setEntity(se);
-                    request.setHeader("Accept", "application/json");
-                    request.setHeader("Content-type", "application/json");
+                    URL url = new URL(geoNotification.url);
+                    HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+                    conn.setReadTimeout(10000);
+                    conn.setConnectTimeout(15000);
+                    conn.setRequestMethod("POST");
+                    conn.setDoInput(true);
+                    conn.setDoOutput(true);
                     
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Accept", "application/json");
+                 
                     for (Map.Entry<String, String> entry : geoNotification.headers.entrySet()) {
-                        request.setHeader(entry.getKey(), entry.getValue());
+                        conn.setRequestProperty(entry.getKey(), entry.getValue());
                     }
-
-                    HttpResponse response = httpClient.execute(request);
-
-                    Log.println(Log.DEBUG, GeofencePlugin.TAG,  "Response received"+ response.getStatusLine());
-                    if (response.getStatusLine().getStatusCode() == 200) {
-                        Log.println(Log.DEBUG, GeofencePlugin.TAG,  "Reponse OK");
-                    } else {
-                        Log.println(Log.DEBUG, GeofencePlugin.TAG,  "Reponse KO");
+                                        
+                    DataOutputStream writer = new DataOutputStream(conn.getOutputStream());
+                    writer.writeBytes(geoNotification.toJson());
+                    writer.flush();
+                    writer.close();
+                    
+                    //Get Response	
+                    InputStream is = conn.getInputStream();
+                    BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+                    String line;
+                    StringBuffer response = new StringBuffer(); 
+                    while((line = rd.readLine()) != null) {
+                      response.append(line);
+                      response.append('\r');
                     }
+                    rd.close();
+                    
+                    Log.println(Log.DEBUG, GeofencePlugin.TAG,  "Response received: "+ response.toString());                   
                 }
             } catch (Throwable e) {
                 Log.println(Log.ERROR, GeofencePlugin.TAG, "Exception posting geofence: " + e);    
