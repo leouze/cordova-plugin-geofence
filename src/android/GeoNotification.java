@@ -20,10 +20,11 @@ public class GeoNotification {
     }
 
     public Geofence toGeofence() {
-        return new Geofence.Builder().setRequestId(id)
-        .setTransitionTypes(transitionType)
-        .setCircularRegion(latitude, longitude, radius)
-        .setExpirationDuration(Long.MAX_VALUE).build();
+        return new Geofence.Builder()
+            .setRequestId(id)
+            .setTransitionTypes(transitionType)
+            .setCircularRegion(latitude, longitude, radius)
+            .setExpirationDuration(Long.MAX_VALUE).build();
     }
 
     public String toJson() {
@@ -31,8 +32,7 @@ public class GeoNotification {
     }
 
     public static GeoNotification fromJson(String json) {
-        if (json == null)
-            return null;
+        if (json == null) return null;
         return Gson.get().fromJson(json, GeoNotification.class);
     }
 }
