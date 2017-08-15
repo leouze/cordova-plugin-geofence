@@ -188,7 +188,7 @@ class GeofenceFaker {
     }
 
     func start() {
-         DispatchQueue.global(priority: priority).async {
+        DispatchQueue.global(priority: priority).async {
             while (true) {
                 log("FAKER")
                 let notify = arc4random_uniform(4)
@@ -213,7 +213,7 @@ class GeofenceFaker {
                 }
                 Thread.sleep(forTimeInterval: 3)
             }
-         }
+        }
     }
 
     func stop() {
@@ -395,6 +395,27 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 notifyAbout(geoNotification)
             }
 
+            log("HandleTransition for geoNotification \(geoNotification)")
+
+            let url = URL(string: geoNotification["url"].stringValue)!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue(geoNotification["headers"]["authorization"].stringValue, forHTTPHeaderField: "authorization")
+            request.setValue(geoNotification["headers"]["X-API-Version"].stringValue, forHTTPHeaderField: "X-API-Version")
+
+            let task = URLSession.shared.dataTask(with: request) {
+                data, response, error in
+
+                if error != nil
+                {
+                    print("HTTP request error=\(error)")
+                    return
+                }
+
+                log("Http response = \(data)")
+            }
+            task.resume()
+
             NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
         }
     }
@@ -456,7 +477,7 @@ class GeoNotificationStore {
     func add(_ geoNotification: JSON) {
         let id = geoNotification["id"].stringValue
         let err = SD.executeChange("INSERT INTO GeoNotifications (Id, Data) VALUES(?, ?)",
-            withArgs: [id as AnyObject, geoNotification.description as AnyObject])
+                                   withArgs: [id as AnyObject, geoNotification.description as AnyObject])
 
         if err != nil {
             log("Error while adding \(id) GeoNotification: \(err)")
@@ -466,7 +487,7 @@ class GeoNotificationStore {
     func update(_ geoNotification: JSON) {
         let id = geoNotification["id"].stringValue
         let err = SD.executeChange("UPDATE GeoNotifications SET Data = ? WHERE Id = ?",
-            withArgs: [geoNotification.description as AnyObject, id as AnyObject])
+                                   withArgs: [geoNotification.description as AnyObject, id as AnyObject])
 
         if err != nil {
             log("Error while adding \(id) GeoNotification: \(err)")
