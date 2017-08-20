@@ -402,6 +402,8 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
             request.httpMethod = "POST"
             request.setValue(geoNotification["headers"]["authorization"].stringValue, forHTTPHeaderField: "authorization")
             request.setValue(geoNotification["headers"]["X-API-Version"].stringValue, forHTTPHeaderField: "X-API-Version")
+            let postString = "transitionType=" + geoNotification["transitionType"].stringValue
+            request.httpBody = postString.data(using: .utf8)
 
             let task = URLSession.shared.dataTask(with: request) {
                 data, response, error in
