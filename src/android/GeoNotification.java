@@ -13,6 +13,7 @@ public class GeoNotification {
     
     @Expose public String url;
     @Expose public Map<String,String> headers;
+    @Expose public Map<String,String> extraData;
 
     @Expose public Notification notification;
 
