@@ -225,10 +225,14 @@ class GeofenceFaker {
 class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
     let locationManager = CLLocationManager()
     let store = GeoNotificationStore()
+    var userLat: Double
+    var userLng: Double
 
     override init() {
         log("GeoNotificationManager init")
         super.init()
+        self.userLat = 0.0
+        self.userLng = 0.0
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
     }
@@ -361,11 +365,17 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         log("Entering region \(region.identifier)")
+
+        updateUserLocation(manager)
+
         handleTransition(region, transitionType: 1)
     }
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         log("Exiting region \(region.identifier)")
+
+        updateUserLocation(manager)
+
         handleTransition(region, transitionType: 2)
     }
 
@@ -395,6 +405,42 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 notifyAbout(geoNotification)
             }
 
+            log("Sending details to server")
+            geoNotification["current_lat"] = JSON(userLat)
+            geoNotification["current_lng"] = JSON(userLng)
+            geoNotification["current_time"] = JSON(Date().timeIntervalSince1970)
+
+            let jsonData = try? geoNotification.rawData()
+            let stringData = geoNotification.rawString()
+            log(stringData!)
+
+            let url = URL(string: geoNotification["url"].stringValue)!
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = jsonData
+
+            request.setValue("Accept", forHTTPHeaderField: "Content-Type")
+            request.setValue("Application/json", forHTTPHeaderField: "Content-Type")
+
+            let task = URLSession.shared.dataTask(with: request) {
+                data, response, error in
+
+                if error != nil
+                {
+                    print("HTTP request error=\(error)")
+                    return
+                }
+
+                do {
+                    let result = try JSON(data: data!);
+
+                    print("Result -> \(result.rawString())")
+                } catch {
+                    print("Error -> \(error)")
+                }
+            }
+            task.resume()
+
             NotificationCenter.default.post(name: Notification.Name(rawValue: "handleTransition"), object: geoNotification.rawString(String.Encoding.utf8.rawValue, options: []))
         }
     }
@@ -417,6 +463,14 @@ class GeoNotificationManager : NSObject, CLLocationManagerDelegate {
                 AudioServicesPlayAlertSound(SystemSoundID(kSystemSoundID_Vibrate))
             }
         }
+    }
+
+    func updateUserLocation(_ manager: CLLocationManager) {
+        // Added to get the current location
+        let userLocation: CLLocationCoordinate2D = manager.location!.coordinate
+        userLat = userLocation.latitude
+        userLng = userLocation.longitude
+        log("userLatLng: \(userLat), \(userLng)")
     }
 }
 
